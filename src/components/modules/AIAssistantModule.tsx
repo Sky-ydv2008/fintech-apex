@@ -10,13 +10,15 @@ import {
   Zap, 
   Copy, 
   Check, 
-  RefreshCw,
-  Info,
-  ChevronDown,
-  User
+  FileText,
+  User,
+  Search,
+  ExternalLink,
+  Cpu
 } from 'lucide-react';
 import { GlassCard } from '../common/GlassCard';
 import { GlowBadge } from '../common/GlowBadge';
+import { ALL_MARKET_COINS } from '../../services/marketApi';
 
 export interface ChatMessage {
   id: string;
@@ -39,10 +41,10 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
       id: 'welcome-1',
       sender: 'assistant',
       content:
-        'Hello! I am Tri-Node AI, your contextual financial & crypto intelligence assistant. How can I analyze the markets or explain financial concepts for you today?',
+        'Hello! I am Tri-Node AI, your intelligence synthesis core. Select any market coin (BTC, SOL, XRP, NVDA, PEPE, TAO) or ask a question regarding market trends, portfolio risk, or anomaly scoring.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       mode: 'market',
-      sources: ['Tri-Node Realtime Data Node', 'CoinGecko Feed', 'Fed Macro Index'],
+      sources: ['Node 1 Realtime Streams', 'CoinGecko Vector Feed', 'PostgreSQL pgvector'],
       sentiment: 'Neutral / Informational',
       confidence: '99.4%',
     },
@@ -52,14 +54,16 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
   const [isTyping, setIsTyping] = useState(false);
   const [activeMode, setActiveMode] = useState<'market' | 'education' | 'anomaly' | 'rag'>('market');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showVectorDrawer, setShowVectorDrawer] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const presetPrompts = [
-    { label: 'Why is Bitcoin moving today?', mode: 'market' as const },
-    { label: 'Explain RAG & pgvector retrieval', mode: 'rag' as const },
-    { label: 'How does Isolation Forest detect transaction fraud?', mode: 'anomaly' as const },
-    { label: 'Evaluate market risk for ETH L2 scaling', mode: 'education' as const },
+    { label: 'Why is Bitcoin surging past $92k?', coin: 'BTC' },
+    { label: 'Analyze Solana DEX volume & TVL', coin: 'SOL' },
+    { label: 'What is XRP RLUSD cross-border impact?', coin: 'XRP' },
+    { label: 'Evaluate Bittensor TAO AI token momentum', coin: 'TAO' },
+    { label: 'Explain Isolation Forest transaction fraud algorithm', coin: 'ML' },
   ];
 
   useEffect(() => {
@@ -87,45 +91,49 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
     if (!textToSend) setInputQuery('');
     setIsTyping(true);
 
-    // Simulate AI synthesis with backend RAG context
+    // AI Synthesis Engine matching all coins
     setTimeout(() => {
       let aiResponse = '';
-      let sources = ['Tri-Node Data Stream v2', 'pgvector Financial KB'];
-      let sentiment = 'Bullish (84% Confidence)';
+      let sources = ['Tri-Node Realtime Data Node', 'pgvector Knowledge Base'];
+      let sentiment = 'Bullish (88% Confidence)';
 
-      if (query.toLowerCase().includes('bitcoin') || query.toLowerCase().includes('btc')) {
+      const lowerQ = query.toLowerCase();
+
+      // Find matching coin from database
+      const matchedCoin = ALL_MARKET_COINS.find(
+        (c) => lowerQ.includes(c.symbol.toLowerCase()) || lowerQ.includes(c.name.toLowerCase())
+      );
+
+      if (matchedCoin) {
         aiResponse =
-          '**Bitcoin (BTC) Technical & Context Analysis:**\n\n' +
-          '• **Current Price Momentum:** BTC is trading near $92,450 (+3.42% in 24h).\n' +
-          '• **Primary Drivers:** Institutional ETF net inflows exceeded $420M in the past 24 hours. Macro liquidity indexes show renewed buying interest following low CPI print.\n' +
-          '• **Support & Resistance:** Key immediate support rests at $90,500, with primary overhead resistance at $94,000.\n' +
-          '• **Observational Signal:** Positive volume profile with RSI at 64.2 (Healthy bullish range).\n\n' +
-          '*Note: Observational market analysis provided for educational and analytical purposes only. Not financial advice.*';
-        sources = ['CoinDesk Stream', 'Spot ETF Tracker API', 'On-Chain Liquidity Node'];
-      } else if (query.toLowerCase().includes('rag') || query.toLowerCase().includes('vector')) {
+          `**Tri-Node Market Intelligence (${matchedCoin.name} / ${matchedCoin.symbol}):**\n\n` +
+          `• **Current Valuation:** $${matchedCoin.price < 1 ? matchedCoin.price.toFixed(6) : matchedCoin.price.toLocaleString()} (${matchedCoin.change24h >= 0 ? '+' : ''}${matchedCoin.change24h}% 24h)\n` +
+          `• **Market Cap & Volume:** ${matchedCoin.marketCap} market cap with ${matchedCoin.volume24h} 24-hour volume.\n` +
+          `• **Technical Signals:** RSI at ${matchedCoin.rsi} (${matchedCoin.macd}). 7-day price action reflects ${matchedCoin.change7d >= 0 ? '+' : ''}${matchedCoin.change7d}% trajectory.\n` +
+          `• **AI Core Observation:** ${matchedCoin.aiObservation}\n\n` +
+          `*Informational observation grounded by Node 1 market streams. Not financial advice.*`;
+        sources.push(`${matchedCoin.name} On-Chain Telemetry`, 'Spot Orderbook Ingest');
+        sentiment = matchedCoin.change24h >= 0 ? 'Bullish (92% Confidence)' : 'Bearish Consolidation';
+      } else if (lowerQ.includes('isolation') || lowerQ.includes('anomaly')) {
         aiResponse =
-          '**RAG (Retrieval-Augmented Generation) Architecture in Tri-Node:**\n\n' +
-          '1. **Ingestion & Chunking:** Financial whitepapers, news summaries, and terminology docs are split into optimal 512-token chunks.\n' +
-          '2. **Embedding Generation:** OpenAI/Gemini embedding models convert text chunks into high-dimensional vector representations.\n' +
-          '3. **pgvector Storage:** Embeddings are stored in PostgreSQL with HNSW index for ultra-low latency cosine similarity searches.\n' +
-          '4. **Context Injection:** When you ask a question, relevant chunks are retrieved and injected directly into the prompt context for zero-hallucination answers.';
-        sources = ['Tri-Node Implementation Plan PDF', 'PostgreSQL pgvector Spec'];
-        sentiment = 'Technical Explanation';
-      } else if (query.toLowerCase().includes('isolation') || query.toLowerCase().includes('anomaly')) {
+          '**Isolation Forest Anomaly ML Model Overview:**\n\n' +
+          '• **Algorithmic Logic:** Isolates observations by randomly partitioning feature values. Anomalies require significantly fewer splits than normal baseline transactions.\n' +
+          '• **Evaluated Features:** Geographic velocity (distance / time delta), amount variance from 30-day mean, device fingerprint hashes.\n' +
+          '• **Threshold Action:** Scores >70 trigger automated alert escalation.';
+        sources.push('Isolation Forest Spec', 'Transaction Risk Log');
+        sentiment = 'Security Metric';
+      } else if (lowerQ.includes('rag') || lowerQ.includes('vector')) {
         aiResponse =
-          '**Isolation Forest Anomaly Detection Engine:**\n\n' +
-          '• **Core Concept:** Isolation Forest isolates anomalies by randomly selecting a feature and split value. Anomalous transactions require far fewer splits to isolate than normal baseline behavior.\n' +
-          '• **Feature Vector:** Features analyzed include Transfer Amount, Geographic Distance/Velocity, Device Fingerprint, and Historical 30-day Mean.\n' +
-          '• **Scoring Threshold:** Risk score > 70 triggers immediate flagging for human audit.';
-        sources = ['Tri-Node Anomaly ML Service', 'Transaction Log Repository'];
-        sentiment = 'Security Audit System';
+          '**RAG (Retrieval-Augmented Generation) & pgvector Storage:**\n\n' +
+          '1. Document Chunking: Text parsed into 512-token embeddings.\n' +
+          '2. Vector Indexing: Stored in PostgreSQL with HNSW cosine similarity index.\n' +
+          '3. Prompt Injection: Top k=3 relevant context chunks retrieved and supplied directly to LLM for zero-hallucination accuracy.';
+        sources.push('pgvector Engine Specification', 'Tri-Node Whitepaper');
+        sentiment = 'Technical Architecture';
       } else {
         aiResponse =
-          `**Tri-Node Analysis regarding: "${query}"**\n\n` +
-          'Based on real-time data feeds collected at Node 1, current indicators reflect standard market fluctuations. Technical moving averages suggest steady liquidity consolidation.\n\n' +
-          '• **Volume Trend:** Stable 24h turnover.\n' +
-          '• **Sentiment Classification:** Neutral to Moderately Positive.\n' +
-          '• **Recommended Action:** Monitor key support levels and set price alerts in Watchlist.';
+          `**Tri-Node Intelligence Synthesis:**\n\n` +
+          `Synthesizing market context for "${query}". Indicators demonstrate stable liquidity across top tracked coins. RSI indexes show neutral-to-bullish momentum.`;
       }
 
       const aiMsg: ChatMessage = {
@@ -136,12 +144,12 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
         mode: activeMode,
         sources,
         sentiment,
-        confidence: '98.8%',
+        confidence: '99.1%',
       };
 
       setMessages((prev) => [...prev, aiMsg]);
       setIsTyping(false);
-    }, 1200);
+    }, 1100);
   };
 
   const copyToClipboard = (id: string, text: string) => {
@@ -156,14 +164,16 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-6">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Tri-Node AI Studio</h1>
-            <GlowBadge variant="orange" size="sm" pulse icon={<Sparkles className="w-3 h-3 text-orange-400" />}>
-              NODE 2 ACTIVE
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-sans">
+              Tri-Node AI Studio
+            </h1>
+            <GlowBadge variant="orange" size="sm" pulse icon={<Sparkles className="w-3.5 h-3.5 text-orange-400" />}>
+              NODE 2 CORE ACTIVE
             </GlowBadge>
           </div>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1">
-            Contextual LLM intelligence grounded by live market feeds and RAG knowledge vectors.
+          <p className="text-slate-300 text-xs sm:text-sm mt-1">
+            Grounded LLM intelligence synthesis across 20+ market coins, portfolio risk, and transaction ML anomalies.
           </p>
         </div>
 
@@ -205,10 +215,10 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
         </div>
       </div>
 
-      {/* Main Chat Grid */}
-      <GlassCard className="p-0 overflow-hidden border-white/10 flex flex-col h-[650px] relative">
+      {/* Main Chat Frame */}
+      <GlassCard className="p-0 overflow-hidden border-white/10 flex flex-col h-[650px] relative shadow-2xl">
         
-        {/* Messages Feed Container */}
+        {/* Messages Feed */}
         <div className="flex-1 p-6 overflow-y-auto space-y-6">
           {messages.map((msg) => {
             const isAssistant = msg.sender === 'assistant';
@@ -218,14 +228,14 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
                 className={`flex gap-4 ${isAssistant ? 'justify-start' : 'justify-end'}`}
               >
                 {isAssistant && (
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white shrink-0 shadow-glow-orange">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white shrink-0 shadow-glow-orange">
                     <Bot className="w-5 h-5" />
                   </div>
                 )}
 
                 <div className={`max-w-2xl space-y-3 ${isAssistant ? 'w-full' : ''}`}>
                   
-                  {/* Message Card */}
+                  {/* Card Container */}
                   <div
                     className={`p-5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                       isAssistant
@@ -237,26 +247,26 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
                       {msg.content}
                     </div>
 
-                    {/* Metadata Footer for Assistant Messages */}
+                    {/* Metadata Footer */}
                     {isAssistant && (
                       <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
                         {msg.sentiment && (
-                          <span className="text-orange-400 font-semibold">
+                          <span className="text-orange-400 font-bold">
                             Sentiment: {msg.sentiment}
                           </span>
                         )}
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button
                             onClick={() => copyToClipboard(msg.id, msg.content)}
-                            className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                            title="Copy response"
+                            className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors flex items-center gap-1"
                           >
                             {copiedId === msg.id ? (
                               <Check className="w-3.5 h-3.5 text-emerald-400" />
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
+                            <span>Copy</span>
                           </button>
                           <span>{msg.timestamp}</span>
                         </div>
@@ -264,14 +274,14 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
                     )}
                   </div>
 
-                  {/* Grounding Source Tags */}
+                  {/* Grounding Source Badges */}
                   {isAssistant && msg.sources && msg.sources.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-slate-400 pl-1">
-                      <span className="flex items-center gap-1 text-slate-400">
+                      <span className="flex items-center gap-1 text-slate-400 font-semibold">
                         <Database className="w-3 h-3 text-orange-400" /> Grounded Context:
                       </span>
                       {msg.sources.map((src, idx) => (
-                        <span key={idx} className="px-2 py-0.5 rounded bg-white/5 border border-white/5">
+                        <span key={idx} className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">
                           {src}
                         </span>
                       ))}
@@ -281,23 +291,23 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
                 </div>
 
                 {!isAssistant && (
-                  <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-slate-200 shrink-0">
-                    <User className="w-4 h-4" />
+                  <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-slate-200 shrink-0">
+                    <User className="w-5 h-5" />
                   </div>
                 )}
               </div>
             );
           })}
 
-          {/* Typing Indicator */}
+          {/* Typing State */}
           {isTyping && (
             <div className="flex gap-4 items-center">
-              <div className="w-9 h-9 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 animate-pulse">
+              <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 animate-pulse">
                 <Bot className="w-5 h-5" />
               </div>
               <div className="p-4 rounded-2xl bg-[#080910] border border-white/10 text-xs text-orange-400 font-mono flex items-center gap-2">
                 <Sparkles className="w-4 h-4 animate-spin" />
-                <span>Tri-Node Engine is synthesizing backend context...</span>
+                <span>Tri-Node Engine synthesizing Node 1 feeds and pgvector embeddings...</span>
               </div>
             </div>
           )}
@@ -305,9 +315,9 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
           <div ref={chatEndRef} />
         </div>
 
-        {/* Prompt Chips Bar */}
+        {/* Suggested Queries Chips */}
         <div className="px-6 py-3 border-t border-white/10 bg-[#06070B] flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Suggested Queries:</span>
+          <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider font-bold">Suggested Market Queries:</span>
           {presetPrompts.map((preset, idx) => (
             <button
               key={idx}
@@ -319,7 +329,7 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
           ))}
         </div>
 
-        {/* Input Bar */}
+        {/* Chat Input Bar */}
         <div className="p-4 bg-[#080910] border-t border-white/10">
           <form
             onSubmit={(e) => {
@@ -330,7 +340,7 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
           >
             <input
               type="text"
-              placeholder="Ask Tri-Node AI about prices, news summary, portfolio risk, or anomaly scores..."
+              placeholder="Ask about any coin (BTC, SOL, XRP, NVDA, PEPE), portfolio risk, or anomaly score..."
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
               className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-orange-500/50"
@@ -338,7 +348,7 @@ export const AIAssistantModule: React.FC<AIAssistantModuleProps> = ({ initialPro
             <button
               type="submit"
               disabled={!inputQuery.trim() || isTyping}
-              className="btn-primary px-5 py-3 rounded-xl flex items-center gap-2 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+              className="btn-primary px-6 py-3 rounded-xl flex items-center gap-2 text-xs font-bold uppercase tracking-wider disabled:opacity-50 shadow-glow-orange"
             >
               <span>Send</span>
               <Send className="w-4 h-4" />
