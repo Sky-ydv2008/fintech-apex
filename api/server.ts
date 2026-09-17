@@ -18,9 +18,35 @@ interface UserRecord {
   name: string;
   email: string;
   passwordHash: string;
+  plainPasswordFallback?: string;
 }
 
-const users: UserRecord[] = [];
+// Pre-configured Team Member Accounts
+const defaultTeamUsers: UserRecord[] = [
+  {
+    id: 'team_lipsa',
+    name: 'Lipsa Bisoyi',
+    email: 'bisoyilipsarani@gmail.com',
+    passwordHash: bcrypt.hashSync('Apex@Lipsa', 10),
+    plainPasswordFallback: 'Apex@Lipsa',
+  },
+  {
+    id: 'team_shivam',
+    name: 'Shivam Yadav',
+    email: 'normiee.sky@gmail.com',
+    passwordHash: bcrypt.hashSync('Apex@Shivam', 10),
+    plainPasswordFallback: 'Apex@Shivam',
+  },
+  {
+    id: 'team_aryan',
+    name: 'Aryan Gupta',
+    email: 'the.aryangupta10@gmail.com',
+    passwordHash: bcrypt.hashSync('Apex@Aryan', 10),
+    plainPasswordFallback: 'Apex@Aryan',
+  },
+];
+
+const users: UserRecord[] = [...defaultTeamUsers];
 
 // Healthcheck
 app.get('/api/health', (req: Request, res: Response) => {
@@ -44,13 +70,19 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Email and password required' });
   }
 
-  const existing = users.find((u) => u.email === email);
+  const existing = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
   if (existing) {
     return res.status(400).json({ error: 'User already exists' });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const newUser: UserRecord = { id: `u_${Date.now()}`, name: name || email.split('@')[0], email, passwordHash };
+  const newUser: UserRecord = {
+    id: `u_${Date.now()}`,
+    name: name || email.split('@')[0],
+    email,
+    passwordHash,
+    plainPasswordFallback: password,
+  };
   users.push(newUser);
 
   const token = jwt.sign({ userId: newUser.id, email: newUser.email }, JWT_SECRET, { expiresIn: '7d' });
@@ -59,23 +91,49 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
 
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  const user = users.find((u) => u.email === email);
+  const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
-  if (!user) {
-    const token = jwt.sign({ userId: 'demo_user', email }, JWT_SECRET, { expiresIn: '7d' });
-    return res.json({ token, user: { id: 'demo_user', name: email.split('@')[0], email } });
+  if (user) {
+    const match = await bcrypt.compare(password, user.passwordHash) || password === user.plainPasswordFallback;
+    if (!match) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+
+    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    return res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   }
 
-  const match = await bcrypt.compare(password, user.passwordHash);
-  if (!match) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-
-  const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-  return res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+  // Demo fallback
+  const token = jwt.sign({ userId: 'demo_user', email }, JWT_SECRET, { expiresIn: '7d' });
+  return res.json({ token, user: { id: 'demo_user', name: email.split('@')[0], email } });
 });
 
-// Markets Route serving all extended market coins
+// Change Password Endpoint
+app.post('/api/auth/change-password', async (req: Request, res: Response) => {
+  const { email, currentPassword, newPassword } = req.body;
+
+  if (!email || !newPassword) {
+    return res.status(400).json({ error: 'Email and new password required' });
+  }
+
+  const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  if (user) {
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.plainPasswordFallback = newPassword;
+  } else {
+    users.push({
+      id: `u_${Date.now()}`,
+      name: email.split('@')[0],
+      email,
+      passwordHash: await bcrypt.hash(newPassword, 10),
+      plainPasswordFallback: newPassword,
+    });
+  }
+
+  return res.json({ status: 'success', message: 'Password updated successfully!' });
+});
+
+// Markets Route serving extended market coins
 app.get('/api/markets', (req: Request, res: Response) => {
   const assets = [
     { symbol: 'BTC', name: 'Bitcoin', price: 92450.25, change24h: 3.42, marketCap: '$1.82T', category: 'Layer 1' },
