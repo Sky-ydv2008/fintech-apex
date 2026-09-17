@@ -25,7 +25,7 @@ interface UserRecord {
 const defaultTeamUsers: UserRecord[] = [
   {
     id: 'team_lipsa',
-    name: 'Lipsa Bisoyi',
+    name: 'Lipsarani Bisoyi',
     email: 'bisoyilipsarani@gmail.com',
     passwordHash: bcrypt.hashSync('Apex@Lipsa', 10),
     plainPasswordFallback: 'Apex@Lipsa',

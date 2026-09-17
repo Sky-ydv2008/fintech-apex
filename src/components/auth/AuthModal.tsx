@@ -45,7 +45,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     // Check credentials or default team passwords
     let displayName = isRegister ? name : email.split('@')[0];
-    if (email === 'bisoyilipsarani@gmail.com') displayName = 'Lipsa Bisoyi';
+    if (email === 'bisoyilipsarani@gmail.com') displayName = 'Lipsarani Bisoyi';
     else if (email === 'normiee.sky@gmail.com') displayName = 'Shivam Yadav';
     else if (email === 'the.aryangupta10@gmail.com') displayName = 'Aryan Gupta';
 
@@ -308,10 +308,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
                 <button
                   type="button"
-                  onClick={() => setTeamQuickLogin('bisoyilipsarani@gmail.com', 'Apex@Lipsa', 'Lipsa Bisoyi')}
+                  onClick={() => setTeamQuickLogin('bisoyilipsarani@gmail.com', 'Apex@Lipsa', 'Lipsarani Bisoyi')}
                   className="p-1.5 rounded bg-white/5 hover:bg-orange-500/20 border border-white/10 text-slate-300 hover:text-white"
                 >
-                  Lipsa
+                  Lipsarani
                 </button>
                 <button
                   type="button"
